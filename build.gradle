@@ -1,0 +1,98 @@
+group 'lab.mage.spring'
+version '1.0.0-ga'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.10.0'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'license'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    jcenter()
+    mavenLocal()
+}
+
+ext.versions = [
+        springcontext      : '4.2.4.RELEASE',
+        cassandradriver    : '3.0.0',
+        gson               : '2.5',
+        logback            : '1.1.3',
+        slf4j              : '1.7.13',
+        findbugs           : '3.0.1',
+        junit              : '4.12',
+        springtest         : '4.2.4.RELEASE'
+]
+
+dependencies {
+    compile(
+            [group: 'org.springframework', name: 'spring-context', version: versions.springcontext],
+            [group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: versions.cassandradriver],
+            [group: 'com.datastax.cassandra', name: 'cassandra-driver-mapping', version: versions.cassandradriver],
+            [group: 'com.datastax.cassandra', name: 'cassandra-driver-extras', version: versions.cassandradriver],
+            [group: 'com.google.code.gson', name: 'gson', version: versions.gson],
+            [group: 'ch.qos.logback', name: 'logback-classic', version: versions.logback],
+            [group: 'org.slf4j', name: 'jcl-over-slf4j', version: versions.slf4j],
+            [group: 'com.google.code.findbugs', name: 'jsr305', version: versions.findbugs]
+    )
+
+    testCompile(
+            [group: 'junit', name: 'junit', version: '4.12'],
+            [group: 'org.springframework', name: 'spring-test', version: versions.springtest]
+    )
+}
+
+license {
+    header rootProject.file('HEADER')
+    strictCheck true
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+    }
+}
+
+publishing {
+    publications {
+        localPublication(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId project.name
+            version project.version
+        }
+    }
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    publications = ['localPublication']
+    pkg {
+        repo = 'generic'
+        name = 'cassandra-connector'
+        userOrg = user
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/mgeiss/cassandra-connector.git'
+        version {
+            name = '1.0.0-ga'
+            desc = 'Spring component to enable multi-tanancy capability for Apache Cassandra.'
+            vcsTag = rootProject.version
+            attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin']
+            mavenCentralSync {
+                sync = true
+            }
+        }
+    }
+}
