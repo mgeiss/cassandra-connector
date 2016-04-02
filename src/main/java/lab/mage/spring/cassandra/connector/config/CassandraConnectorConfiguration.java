@@ -35,7 +35,7 @@ import org.springframework.core.env.Environment;
 public class CassandraConnectorConfiguration {
 
     @Autowired
-    private Environment evn;
+    private Environment env;
 
     public CassandraConnectorConfiguration() {
         super();
@@ -70,13 +70,13 @@ public class CassandraConnectorConfiguration {
     @Bean
     @Autowired
     public CassandraSessionProvider cassandraSessionProvider(@Qualifier(CassandraConnectorConstants.LOGGER_NAME) final Logger logger) {
-        final CassandraSessionProvider cassandraSessionProvider = new CassandraSessionProvider(logger);
+        final CassandraSessionProvider cassandraSessionProvider = new CassandraSessionProvider(this.env, logger);
         cassandraSessionProvider.setAdminClusterName(
-                this.evn.getProperty(CassandraConnectorConstants.CLUSTER_NAME_PROP, CassandraConnectorConstants.CLUSTER_NAME_PROP_DEFAULT));
+                this.env.getProperty(CassandraConnectorConstants.CLUSTER_NAME_PROP, CassandraConnectorConstants.CLUSTER_NAME_PROP_DEFAULT));
         cassandraSessionProvider.setAdminContactPoints(
-                this.evn.getProperty(CassandraConnectorConstants.CONTACT_POINTS_PROP, CassandraConnectorConstants.CONTACT_POINTS_PROP_DEFAULT));
+                this.env.getProperty(CassandraConnectorConstants.CONTACT_POINTS_PROP, CassandraConnectorConstants.CONTACT_POINTS_PROP_DEFAULT));
         cassandraSessionProvider.setAdminKeyspace(
-                this.evn.getProperty(CassandraConnectorConstants.KEYSPACE_PROP, CassandraConnectorConstants.KEYSPACE_PROP_DEFAULT));
+                this.env.getProperty(CassandraConnectorConstants.KEYSPACE_PROP, CassandraConnectorConstants.KEYSPACE_PROP_DEFAULT));
 
         cassandraSessionProvider.touchAdminSession();
 
@@ -93,6 +93,6 @@ public class CassandraConnectorConfiguration {
     @Bean
     @Autowired
     public TenantAwareCassandraMapperProvider cassandraMapperProvider(@Qualifier(CassandraConnectorConstants.LOGGER_NAME) final Logger logger, final CassandraSessionProvider cassandraSessionProvider) {
-        return new TenantAwareCassandraMapperProvider(this.evn, logger, cassandraSessionProvider);
+        return new TenantAwareCassandraMapperProvider(this.env, logger, cassandraSessionProvider);
     }
 }

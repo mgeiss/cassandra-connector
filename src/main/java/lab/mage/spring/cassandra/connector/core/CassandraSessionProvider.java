@@ -21,9 +21,11 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
+import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import lab.mage.spring.cassandra.connector.domain.TenantInfo;
 import org.slf4j.Logger;
+import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 
 import javax.annotation.Nonnull;
@@ -38,6 +40,7 @@ import java.util.concurrent.locks.StampedLock;
  */
 public class CassandraSessionProvider {
 
+    private final Environment env;
     private final Logger logger;
     private final HashMap<String, Cluster> clusterCache;
     private final HashMap<String, Session> sessionCache;
@@ -51,8 +54,9 @@ public class CassandraSessionProvider {
     private final StampedLock sessionLock = new StampedLock();
     private final StampedLock mapperLock = new StampedLock();
 
-    public CassandraSessionProvider(final Logger logger) {
+    public CassandraSessionProvider(final Environment env, final Logger logger) {
         super();
+        this.env = env;
         this.logger = logger;
         this.clusterCache = new HashMap<>();
         this.sessionCache = new HashMap<>();
@@ -99,7 +103,21 @@ public class CassandraSessionProvider {
         Assert.notNull(identifier, "A tenant identifier must be given!");
 
         final Mapper<TenantInfo> tenantInfoMapper = this.getAdminSessionMappingManager().mapper(TenantInfo.class);
-        tenantInfoMapper.setDefaultGetOptions(Mapper.Option.consistencyLevel(ConsistencyLevel.LOCAL_QUORUM));
+        final Mapper.Option clDeleteOption = Mapper.Option.consistencyLevel(
+                ConsistencyLevel.valueOf(
+                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_DELETE_PROP,
+                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
+        final Mapper.Option clReadOption = Mapper.Option.consistencyLevel(
+                ConsistencyLevel.valueOf(
+                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_READ_PROP,
+                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
+        final Mapper.Option clWriteOption = Mapper.Option.consistencyLevel(
+                ConsistencyLevel.valueOf(
+                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_WRITE_PROP,
+                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
+        tenantInfoMapper.setDefaultDeleteOptions(clDeleteOption);
+        tenantInfoMapper.setDefaultGetOptions(clReadOption);
+        tenantInfoMapper.setDefaultSaveOptions(clWriteOption);
         final TenantInfo tenantInfo = tenantInfoMapper.get(identifier);
         Assert.notNull(tenantInfo, "Tenant [" + identifier + "] unknown!");
         return this.getSession(tenantInfo.getClusterName(), tenantInfo.getContactPoints(), tenantInfo.getKeyspace());
@@ -121,6 +139,9 @@ public class CassandraSessionProvider {
                     if (!this.clusterCache.containsKey(clusterName)) {
                         final Cluster cluster = Cluster.builder()
                                 .withClusterName(clusterName)
+                                .withPort(
+                                        Integer.valueOf(this.env.getProperty(CassandraConnectorConstants.CASSANDRA_PORT_PROP, Integer.toString(CassandraConnectorConstants.CASSANDRA_PORT_DEFAULT)))
+                                )
                                 .addContactPoints(contactPoints.split(","))
                                 .build();
                         this.clusterCache.put(clusterName, cluster);
@@ -163,8 +184,11 @@ public class CassandraSessionProvider {
     @PreDestroy
     public void cleanUp() {
         this.logger.info("Clean up cluster connections.");
+
+        this.sessionCache.values().forEach(Session::close);
+        this.sessionCache.clear();
+
         this.clusterCache.values().forEach(Cluster::close);
         this.clusterCache.clear();
-        this.sessionCache.clear();
     }
 }

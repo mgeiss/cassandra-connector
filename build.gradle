@@ -35,7 +35,8 @@ ext.versions = [
         slf4j              : '1.7.13',
         findbugs           : '3.0.1',
         junit              : '4.12',
-        springtest         : '4.2.4.RELEASE'
+        springtest         : '4.2.4.RELEASE',
+        cassandraunit      : '2.1.9.2'
 ]
 
 dependencies {
@@ -52,7 +53,8 @@ dependencies {
 
     testCompile(
             [group: 'junit', name: 'junit', version: '4.12'],
-            [group: 'org.springframework', name: 'spring-test', version: versions.springtest]
+            [group: 'org.springframework', name: 'spring-test', version: versions.springtest],
+            [group: 'org.cassandraunit', name: 'cassandra-unit', version: versions.cassandraunit]
     )
 }
 
