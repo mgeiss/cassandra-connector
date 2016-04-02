@@ -28,15 +28,15 @@ repositories {
 }
 
 ext.versions = [
-        springcontext      : '4.2.4.RELEASE',
-        cassandradriver    : '3.0.0',
-        gson               : '2.5',
-        logback            : '1.1.3',
-        slf4j              : '1.7.13',
-        findbugs           : '3.0.1',
-        junit              : '4.12',
-        springtest         : '4.2.4.RELEASE',
-        cassandraunit      : '2.1.9.2'
+        springcontext  : '4.2.4.RELEASE',
+        cassandradriver: '3.0.0',
+        gson           : '2.5',
+        logback        : '1.1.3',
+        slf4j          : '1.7.13',
+        findbugs       : '3.0.1',
+        junit          : '4.12',
+        springtest     : '4.2.4.RELEASE',
+        cassandraunit  : '2.1.9.2'
 ]
 
 dependencies {

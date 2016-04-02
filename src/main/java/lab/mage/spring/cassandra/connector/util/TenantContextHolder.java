@@ -33,7 +33,7 @@ public class TenantContextHolder {
         return Optional.ofNullable(TenantContextHolder.THREAD_LOCAL.get());
     }
 
-    public static void setIdentifier(@Nonnull  final String identifier) {
+    public static void setIdentifier(@Nonnull final String identifier) {
         Assert.notNull(identifier, "A tenant identifier must be given!");
         TenantContextHolder.THREAD_LOCAL.set(identifier);
     }

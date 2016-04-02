@@ -18,13 +18,12 @@ package lab.mage.spring.cassandra.connector;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
 import lab.mage.spring.cassandra.connector.config.EnableCassandraConnector;
-import lab.mage.spring.cassandra.connector.core.TenantAwareCassandraMapperProvider;
 import lab.mage.spring.cassandra.connector.core.CassandraSessionProvider;
-import lab.mage.spring.cassandra.connector.fixture.DataLoader;
-import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
-import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
+import lab.mage.spring.cassandra.connector.core.TenantAwareCassandraMapperProvider;
 import lab.mage.spring.cassandra.connector.domain.SampleEntity;
-import org.apache.cassandra.service.EmbeddedCassandraService;
+import lab.mage.spring.cassandra.connector.fixture.DataLoader;
+import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
+import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -73,7 +72,7 @@ public class CassandraSessionProviderIntegrationTest {
     }
 
     @BeforeClass
-    public static void prepare() throws Exception{
+    public static void prepare() throws Exception {
         System.setProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_DELETE_PROP, "ONE");
         System.setProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_READ_PROP, "ONE");
         System.setProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_WRITE_PROP, "ONE");

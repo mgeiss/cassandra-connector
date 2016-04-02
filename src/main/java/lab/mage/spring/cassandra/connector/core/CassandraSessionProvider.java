@@ -20,10 +20,10 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
+import lab.mage.spring.cassandra.connector.domain.TenantInfo;
 import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
 import lab.mage.spring.cassandra.connector.util.OptionProvider;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
-import lab.mage.spring.cassandra.connector.domain.TenantInfo;
 import org.slf4j.Logger;
 import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
@@ -34,8 +34,6 @@ import java.util.HashMap;
 import java.util.concurrent.locks.StampedLock;
 
 /**
- *
- *
  * @author Markus Geiss
  */
 public class CassandraSessionProvider {
@@ -165,7 +163,7 @@ public class CassandraSessionProvider {
         return adminSessionMappingManager;
     }
 
-    public void touchAdminSession () {
+    public void touchAdminSession() {
         this.getAdminSession();
     }
 

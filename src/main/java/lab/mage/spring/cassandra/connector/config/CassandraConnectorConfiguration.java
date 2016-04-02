@@ -15,8 +15,8 @@
  */
 package lab.mage.spring.cassandra.connector.config;
 
-import lab.mage.spring.cassandra.connector.core.TenantAwareCassandraMapperProvider;
 import lab.mage.spring.cassandra.connector.core.CassandraSessionProvider;
+import lab.mage.spring.cassandra.connector.core.TenantAwareCassandraMapperProvider;
 import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,14 +53,14 @@ public class CassandraConnectorConfiguration {
 
     /**
      * Creates an instance of <tt>CassandraSessionProvider</tt>.
-     *
+     * <p>
      * The following environment variables and their defaults are used to connect
      * to a cluster and retrieve the meta keyspace:
-     *
+     * <p>
      * <ul>
-     *     <li><tt>lab.mage.connector.clustername</tt>: mage_staging_cluster</li>
-     *     <li><tt>lab.mage.connector.contactpoints</tt>: 127.0.0.1,127.0.0.2,127.0.0.3</li>
-     *     <li><tt>lab.mage.connector.keyspace</tt>: mage_system</li>
+     * <li><tt>lab.mage.connector.clustername</tt>: mage_staging_cluster</li>
+     * <li><tt>lab.mage.connector.contactpoints</tt>: 127.0.0.1,127.0.0.2,127.0.0.3</li>
+     * <li><tt>lab.mage.connector.keyspace</tt>: mage_system</li>
      * </ul>
      *
      * @param logger Logger to be used.
@@ -86,7 +86,7 @@ public class CassandraConnectorConfiguration {
     /**
      * Creates an instance of <tt>TenantAwareCassandraMapperProvider</tt>.
      *
-     * @param logger Logger to be used.
+     * @param logger                   Logger to be used.
      * @param cassandraSessionProvider CassandraSessionProvider to be used
      * @return a <tt>TenantAwareCassandraMapperProvider</tt> instance
      */
