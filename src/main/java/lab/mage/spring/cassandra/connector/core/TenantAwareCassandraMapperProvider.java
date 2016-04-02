@@ -15,11 +15,10 @@
  */
 package lab.mage.spring.cassandra.connector.core;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
-import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
+import lab.mage.spring.cassandra.connector.util.OptionProvider;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import org.slf4j.Logger;
 import org.springframework.core.env.Environment;
@@ -109,22 +108,10 @@ public class TenantAwareCassandraMapperProvider {
                         final Session session = this.cassandraSessionProvider.getTenantSession(identifier);
                         this.managerCache.put(identifier, new MappingManager(session));
                     }
-                    final Mapper.Option clDeleteOption = Mapper.Option.consistencyLevel(
-                            ConsistencyLevel.valueOf(
-                                    this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_DELETE_PROP,
-                                    CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
-                    final Mapper.Option clReadOption = Mapper.Option.consistencyLevel(
-                            ConsistencyLevel.valueOf(
-                                    this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_READ_PROP,
-                                            CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
-                    final Mapper.Option clWriteOption = Mapper.Option.consistencyLevel(
-                            ConsistencyLevel.valueOf(
-                                    this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_WRITE_PROP,
-                                            CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
                     final Mapper<T> typedMapper = this.managerCache.get(identifier).mapper(type);
-                    typedMapper.setDefaultDeleteOptions(clDeleteOption);
-                    typedMapper.setDefaultGetOptions(clReadOption);
-                    typedMapper.setDefaultSaveOptions(clWriteOption);
+                    typedMapper.setDefaultDeleteOptions(OptionProvider.deleteConsistencyLevel(this.env));
+                    typedMapper.setDefaultGetOptions(OptionProvider.readConsistencyLevel(this.env));
+                    typedMapper.setDefaultSaveOptions(OptionProvider.writeConsistencyLevel(this.env));
                     this.mapperCache.put(cacheKey, typedMapper);
                 }
             } finally {

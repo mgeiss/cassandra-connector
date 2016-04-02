@@ -16,12 +16,12 @@
 package lab.mage.spring.cassandra.connector.core;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
+import lab.mage.spring.cassandra.connector.util.OptionProvider;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import lab.mage.spring.cassandra.connector.domain.TenantInfo;
 import org.slf4j.Logger;
@@ -103,21 +103,9 @@ public class CassandraSessionProvider {
         Assert.notNull(identifier, "A tenant identifier must be given!");
 
         final Mapper<TenantInfo> tenantInfoMapper = this.getAdminSessionMappingManager().mapper(TenantInfo.class);
-        final Mapper.Option clDeleteOption = Mapper.Option.consistencyLevel(
-                ConsistencyLevel.valueOf(
-                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_DELETE_PROP,
-                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
-        final Mapper.Option clReadOption = Mapper.Option.consistencyLevel(
-                ConsistencyLevel.valueOf(
-                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_READ_PROP,
-                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
-        final Mapper.Option clWriteOption = Mapper.Option.consistencyLevel(
-                ConsistencyLevel.valueOf(
-                        this.env.getProperty(CassandraConnectorConstants.CONSISTENCY_LEVEL_WRITE_PROP,
-                                CassandraConnectorConstants.CONSISTENCY_LEVEL_PROP_DEFAULT)));
-        tenantInfoMapper.setDefaultDeleteOptions(clDeleteOption);
-        tenantInfoMapper.setDefaultGetOptions(clReadOption);
-        tenantInfoMapper.setDefaultSaveOptions(clWriteOption);
+        tenantInfoMapper.setDefaultDeleteOptions(OptionProvider.deleteConsistencyLevel(this.env));
+        tenantInfoMapper.setDefaultGetOptions(OptionProvider.readConsistencyLevel(this.env));
+        tenantInfoMapper.setDefaultSaveOptions(OptionProvider.writeConsistencyLevel(this.env));
         final TenantInfo tenantInfo = tenantInfoMapper.get(identifier);
         Assert.notNull(tenantInfo, "Tenant [" + identifier + "] unknown!");
         return this.getSession(tenantInfo.getClusterName(), tenantInfo.getContactPoints(), tenantInfo.getKeyspace());
