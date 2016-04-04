@@ -81,14 +81,14 @@ bintray {
     publications = ['localPublication']
     pkg {
         repo = 'maven'
-        name = 'cassandra-connector'
+        name = 'lab.mage.spring:cassandra-connector'
         userOrg = user
         licenses = ['Apache-2.0']
         vcsUrl = 'https://github.com/mgeiss/cassandra-connector.git'
         version {
-            name = '1.0.0-ga'
+            name = project.version
             desc = 'Spring component to enable multi-tanancy capability for Apache Cassandra.'
-            vcsTag = rootProject.version
+            vcsTag = project.version
             attributes = ['gradle-plugin': 'com.use.less:com.use.less.gradle:gradle-useless-plugin']
             mavenCentralSync {
                 sync = true
