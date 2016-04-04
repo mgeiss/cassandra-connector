@@ -22,7 +22,6 @@ import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import lab.mage.spring.cassandra.connector.domain.TenantInfo;
 import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
-import lab.mage.spring.cassandra.connector.util.OptionProvider;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import org.slf4j.Logger;
 import org.springframework.core.env.Environment;
@@ -30,18 +29,15 @@ import org.springframework.util.Assert;
 
 import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 
-/**
- * @author Markus Geiss
- */
-public class CassandraSessionProvider {
+public final class CassandraSessionProvider {
 
     private final Environment env;
     private final Logger logger;
-    private final HashMap<String, Cluster> clusterCache;
-    private final HashMap<String, Session> sessionCache;
+    private final ConcurrentHashMap<String, Cluster> clusterCache;
+    private final ConcurrentHashMap<String, Session> sessionCache;
 
     private String adminClusterName;
     private String adminContactPoints;
@@ -49,29 +45,33 @@ public class CassandraSessionProvider {
 
     private MappingManager adminSessionMappingManager;
 
-    private final StampedLock sessionLock = new StampedLock();
     private final StampedLock mapperLock = new StampedLock();
 
-    public CassandraSessionProvider(final Environment env, final Logger logger) {
+    public CassandraSessionProvider(@Nonnull final Environment env, @Nonnull final Logger logger) {
         super();
+        Assert.notNull(env, "An environment must be given!");
+        Assert.notNull(logger, "A logger must be given!");
         this.env = env;
         this.logger = logger;
-        this.clusterCache = new HashMap<>();
-        this.sessionCache = new HashMap<>();
+        this.clusterCache = new ConcurrentHashMap<>();
+        this.sessionCache = new ConcurrentHashMap<>();
     }
 
     public void setAdminClusterName(@Nonnull final String adminClusterName) {
-        Assert.notNull(adminClusterName);
+        Assert.notNull(adminClusterName, "A cluster name must be given!");
+        Assert.hasText(adminClusterName, "A cluster name must be given!");
         this.adminClusterName = adminClusterName;
     }
 
     public void setAdminContactPoints(@Nonnull final String adminContactPoints) {
-        Assert.notNull(adminContactPoints);
+        Assert.notNull(adminContactPoints, "At least one contact point must be given!");
+        Assert.hasText(adminContactPoints, "At least one contact point must be given!");
         this.adminContactPoints = adminContactPoints;
     }
 
     public void setAdminKeyspace(@Nonnull final String adminKeyspace) {
-        Assert.notNull(adminKeyspace);
+        Assert.notNull(adminKeyspace, "An keyspace must be given!");
+        Assert.hasText(adminKeyspace, "An keyspace must be given!");
         this.adminKeyspace = adminKeyspace;
     }
 
@@ -99,6 +99,7 @@ public class CassandraSessionProvider {
     @Nonnull
     public Session getTenantSession(@Nonnull final String identifier) {
         Assert.notNull(identifier, "A tenant identifier must be given!");
+        Assert.hasText(identifier, "A tenant identifier must be given!");
 
         final Mapper<TenantInfo> tenantInfoMapper = this.getAdminSessionMappingManager().mapper(TenantInfo.class);
         tenantInfoMapper.setDefaultDeleteOptions(OptionProvider.deleteConsistencyLevel(this.env));
@@ -114,35 +115,36 @@ public class CassandraSessionProvider {
                               @Nonnull final String contactPoints,
                               @Nonnull final String keyspace) {
         Assert.notNull(clusterName, "A cluster name must be given!");
+        Assert.hasText(clusterName, "A cluster name must be given!");
         Assert.notNull(contactPoints, "At least one contact point must be given!");
+        Assert.hasText(contactPoints, "At least one contact point must be given!");
         Assert.notNull(keyspace, "A keyspace must be given!");
+        Assert.hasText(keyspace, "A keyspace must be given!");
 
-        if (!this.sessionCache.containsKey(keyspace)) {
-            final long lockStamp = this.sessionLock.writeLock();
-            try {
-                if (!this.sessionCache.containsKey(keyspace)) {
-                    this.logger.info("Create new session for keyspace [" + keyspace + "].");
-                    if (!this.clusterCache.containsKey(clusterName)) {
-                        final Cluster cluster = Cluster.builder()
-                                .withClusterName(clusterName)
-                                .withPort(
-                                        Integer.valueOf(this.env.getProperty(CassandraConnectorConstants.CASSANDRA_PORT_PROP, Integer.toString(CassandraConnectorConstants.CASSANDRA_PORT_DEFAULT)))
-                                )
-                                .addContactPoints(contactPoints.split(","))
-                                .build();
-                        this.clusterCache.put(clusterName, cluster);
-                    }
-                    try {
-                        final Session session = this.clusterCache.get(clusterName).connect(keyspace);
-                        this.sessionCache.put(keyspace, session);
-                    } catch (final InvalidQueryException iqex) {
-                        throw new IllegalArgumentException("Could not connect keyspace!", iqex);
-                    }
+        this.sessionCache.computeIfAbsent(keyspace, (sessionKey) -> {
+            this.logger.info("Create new session for keyspace [" + keyspace + "].");
+
+            this.clusterCache.computeIfAbsent(clusterName, (clusterKey) -> {
+                final String[] contactPointsAsArray = contactPoints.split(",");
+                for (int i = 0; i < contactPointsAsArray.length; i++) {
+                    contactPointsAsArray[i] = contactPointsAsArray[i].trim();
                 }
-            } finally {
-                this.sessionLock.unlockWrite(lockStamp);
+                final Cluster cluster = Cluster.builder()
+                        .withClusterName(clusterName)
+                        .withPort(
+                                Integer.valueOf(this.env.getProperty(CassandraConnectorConstants.CASSANDRA_PORT_PROP,
+                                        CassandraConnectorConstants.CASSANDRA_PORT_DEFAULT))
+                        )
+                        .addContactPoints(contactPointsAsArray)
+                        .build();
+                return cluster;
+            });
+            try {
+                return this.clusterCache.get(clusterName).connect(keyspace);
+            } catch (final InvalidQueryException iqex) {
+                throw new IllegalArgumentException("Could not connect keyspace!", iqex);
             }
-        }
+        });
 
         return this.sessionCache.get(keyspace);
     }
@@ -160,7 +162,7 @@ public class CassandraSessionProvider {
             }
         }
 
-        return adminSessionMappingManager;
+        return this.adminSessionMappingManager;
     }
 
     public void touchAdminSession() {
@@ -168,7 +170,7 @@ public class CassandraSessionProvider {
     }
 
     @PreDestroy
-    public void cleanUp() {
+    private void cleanUp() {
         this.logger.info("Clean up cluster connections.");
 
         this.sessionCache.values().forEach(Session::close);

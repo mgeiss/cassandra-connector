@@ -26,7 +26,7 @@ public interface CassandraConnectorConstants {
     String CONTACT_POINTS_PROP_DEFAULT = "127.0.0.1,127.0.0.2,127.0.0.3";
 
     String CASSANDRA_PORT_PROP = "lab.mage.connector.port";
-    int CASSANDRA_PORT_DEFAULT = 9042;
+    String CASSANDRA_PORT_DEFAULT = "9042";
 
     String KEYSPACE_PROP = "lab.mage.connector.keyspace";
     String KEYSPACE_PROP_DEFAULT = "mage_system";

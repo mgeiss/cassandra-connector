@@ -13,12 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/*
- * The following statements will create two keyspaces, mage_system and mage_test.
- * mage_system is the meta keyspace to manage all tenants, mage_test is a test
- * tenant keyspace used for integration test.
- */
 CREATE KEYSPACE mage_system WITH REPLICATION = {
   'class' : 'SimpleStrategy',
   'replication_factor' : 3

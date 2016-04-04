@@ -20,7 +20,7 @@ import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
 
 @Table(name = "tenants")
-public class TenantInfo {
+public final class TenantInfo {
 
     @PartitionKey
     private String identifier;

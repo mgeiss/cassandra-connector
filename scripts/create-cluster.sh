@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-# This scripts utilizes ccm, a Cassandra cluster manager to create a cluster
-# for test purposes. ccm can be found at https://github.com/pcmanus/ccm.
-#
-# Prior starting a ccm cluster make sure needed loopback IP aliases exist.
-# For RHEL/CentOS/Fedora based system simply execute:
-#
 sudo ifconfig lo:1 127.0.0.2 netmask 255.0.0.0 up
 sudo ifconfig lo:2 127.0.0.3 netmask 255.0.0.0 up
 ccm create mage_staging_cluster -v 2.2.5

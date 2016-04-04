@@ -20,6 +20,7 @@ import com.datastax.driver.mapping.Mapper;
 import lab.mage.spring.cassandra.connector.config.EnableCassandraConnector;
 import lab.mage.spring.cassandra.connector.core.CassandraSessionProvider;
 import lab.mage.spring.cassandra.connector.core.TenantAwareCassandraMapperProvider;
+import lab.mage.spring.cassandra.connector.core.TenantAwareEntityTemplate;
 import lab.mage.spring.cassandra.connector.domain.SampleEntity;
 import lab.mage.spring.cassandra.connector.fixture.DataLoader;
 import lab.mage.spring.cassandra.connector.util.CassandraConnectorConstants;
@@ -38,6 +39,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -66,6 +68,9 @@ public class CassandraSessionProviderIntegrationTest {
 
     @Autowired
     private TenantAwareCassandraMapperProvider tenantAwareCassandraMapperProvider;
+
+    @Autowired
+    private TenantAwareEntityTemplate tenantAwareEntityTemplate;
 
     public CassandraSessionProviderIntegrationTest() {
         super();
@@ -300,5 +305,19 @@ public class CassandraSessionProviderIntegrationTest {
         final Mapper<SampleEntity> sampleEntityMapper = this.tenantAwareCassandraMapperProvider.getMapper(SampleEntity.class);
         final SampleEntity fetchedSampleEntity = sampleEntityMapper.get(UUID.randomUUID().toString());
         Assert.assertNull(fetchedSampleEntity);
+    }
+
+    @Test
+    public void shouldSaveSampleEntityUsingTemplate() {
+        final String identifier = UUID.randomUUID().toString();
+        final SampleEntity sampleEntity = new SampleEntity();
+        sampleEntity.setIdentifier(identifier);
+        sampleEntity.setContent("test content");
+
+        this.tenantAwareEntityTemplate.save(sampleEntity);
+
+        final Optional<SampleEntity> fetchedSampleEntity = this.tenantAwareEntityTemplate.findById(SampleEntity.class, identifier);
+        Assert.assertTrue(fetchedSampleEntity.isPresent());
+        Assert.assertEquals(sampleEntity, fetchedSampleEntity.get());
     }
 }

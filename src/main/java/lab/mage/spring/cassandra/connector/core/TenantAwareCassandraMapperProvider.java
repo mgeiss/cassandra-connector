@@ -18,66 +18,34 @@ package lab.mage.spring.cassandra.connector.core;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
-import lab.mage.spring.cassandra.connector.util.OptionProvider;
 import lab.mage.spring.cassandra.connector.util.TenantContextHolder;
 import org.slf4j.Logger;
 import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 
-public class TenantAwareCassandraMapperProvider {
-
-    private static final class CacheKey<T> {
-
-        private final String identifier;
-        private final Class<T> type;
-
-        public CacheKey(@Nonnull final String identifier, @Nonnull final Class<T> type) {
-            super();
-            Assert.notNull(identifier);
-            Assert.notNull(type);
-            this.identifier = identifier;
-            this.type = type;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            CacheKey<?> cacheKey = (CacheKey<?>) o;
-
-            if (!identifier.equals(cacheKey.identifier)) return false;
-            return type.equals(cacheKey.type);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = identifier.hashCode();
-            result = 31 * result + type.hashCode();
-            return result;
-        }
-    }
+public final class TenantAwareCassandraMapperProvider {
 
     private final Environment env;
     private final Logger logger;
     private final CassandraSessionProvider cassandraSessionProvider;
-    private final HashMap<String, MappingManager> managerCache;
-    private final HashMap<CacheKey<?>, Mapper<?>> mapperCache;
+    private final ConcurrentHashMap<String, MappingManager> managerCache;
 
     private final StampedLock lock = new StampedLock();
 
-    public TenantAwareCassandraMapperProvider(final Environment env, final Logger logger, final CassandraSessionProvider cassandraSessionProvider) {
+    public TenantAwareCassandraMapperProvider(@Nonnull final Environment env, @Nonnull final Logger logger,
+                                              @Nonnull final CassandraSessionProvider cassandraSessionProvider) {
         super();
+        Assert.notNull(env, "An environment must be given!");
+        Assert.notNull(logger, "A logger must be given!");
+        Assert.notNull(cassandraSessionProvider, "A Cassandra session provider must be given!");
         this.env = env;
         this.logger = logger;
         this.cassandraSessionProvider = cassandraSessionProvider;
-        this.managerCache = new HashMap<>();
-        this.mapperCache = new HashMap<>();
+        this.managerCache = new ConcurrentHashMap<>();
     }
 
     @Nonnull
@@ -91,34 +59,26 @@ public class TenantAwareCassandraMapperProvider {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Nonnull
     public <T> Mapper<T> getMapper(@Nonnull final String identifier, @Nonnull final Class<T> type) {
         Assert.notNull(identifier, "A tenant identifier must be given!");
+        Assert.hasText(identifier, "A tenant identifier must be given!");
         Assert.notNull(type, "A type must be given!");
 
-        final CacheKey<T> cacheKey = new CacheKey<>(identifier, type);
+        this.managerCache.computeIfAbsent(identifier, (key) -> {
+            this.logger.info("Create new mapping mapper for tenant [" + identifier + "] and type [" + type.getSimpleName() + "].");
+            final Session session = this.cassandraSessionProvider.getTenantSession(identifier);
 
-        if (!this.mapperCache.containsKey(cacheKey)) {
-            final long lockStamp = this.lock.writeLock();
-            try {
-                if (!this.mapperCache.containsKey(cacheKey)) {
-                    this.logger.info("Create new mapper for tenant [" + identifier + "] and type [" + type.getSimpleName() + "].");
-                    if (!this.managerCache.containsKey(identifier)) {
-                        final Session session = this.cassandraSessionProvider.getTenantSession(identifier);
-                        this.managerCache.put(identifier, new MappingManager(session));
-                    }
-                    final Mapper<T> typedMapper = this.managerCache.get(identifier).mapper(type);
-                    typedMapper.setDefaultDeleteOptions(OptionProvider.deleteConsistencyLevel(this.env));
-                    typedMapper.setDefaultGetOptions(OptionProvider.readConsistencyLevel(this.env));
-                    typedMapper.setDefaultSaveOptions(OptionProvider.writeConsistencyLevel(this.env));
-                    this.mapperCache.put(cacheKey, typedMapper);
-                }
-            } finally {
-                this.lock.unlockWrite(lockStamp);
-            }
-        }
+            final MappingManager mappingManager = new MappingManager(session);
 
-        return (Mapper<T>) this.mapperCache.get(cacheKey);
+            final Mapper<T> typedMapper = mappingManager.mapper(type);
+            typedMapper.setDefaultDeleteOptions(OptionProvider.deleteConsistencyLevel(this.env));
+            typedMapper.setDefaultGetOptions(OptionProvider.readConsistencyLevel(this.env));
+            typedMapper.setDefaultSaveOptions(OptionProvider.writeConsistencyLevel(this.env));
+
+            return mappingManager;
+        });
+
+        return this.managerCache.get(identifier).mapper(type);
     }
 }
