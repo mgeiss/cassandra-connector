@@ -6,6 +6,16 @@ Providing a tenant per keyspace approach to allow clean separation of data.
 A meta keyspace is used to retrieve available tenants and needed information to connect to a cluster. The information stored contains an identifier, the cluster name, contact points, and the name of the keyspace.
 
 ## Usage
+
+### TenantContextHolder
+Can be used to set an identifier using ThreadLocal.
+ 
+    ...
+    
+    TenantContextHolder.setIdentifier("staging");
+    
+    ...
+    
 ### TenantAwareEntityTemplate
 Allows simple read and write operations recognizing the tenant internally.
 
