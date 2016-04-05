@@ -5,6 +5,109 @@ Providing a tenant per keyspace approach to allow clean separation of data.
 
 A meta keyspace is used to retrieve available tenants and needed information to connect to a cluster. The information stored contains an identifier, the cluster name, contact points, and the name of the keyspace.
 
+## Usage
+### TenantAwareEntityTemplate
+Allows simple read and write operations recognizing the tenant internally.
+
+    ...
+    
+    private final TenantAwareEntityTemplate tenantAwareEntityTemplate;
+    
+    @Autowired
+    public Sample(final TenantAwareEntityTemplate tenantAwareEntityTemplate) {
+        super();
+        this.tenantAwareEntityTemplate = tenantAwareEntityTemplate;
+    }
+    
+    ...
+    
+    public void shouldSaveSampleEntityUsingTemplate() throws Exception {
+        final String identifier = UUID.randomUUID().toString();
+        final SampleEntity sampleEntity = new SampleEntity();
+        sampleEntity.setIdentifier(identifier);
+        sampleEntity.setContent("test content");
+
+        this.tenantAwareEntityTemplate.save(sampleEntity);
+
+        final Optional<SampleEntity> fetchedSampleEntity = 
+                this.tenantAwareEntityTemplate.findById(SampleEntity.class, identifier);
+        ...
+    }
+    
+    ...
+
+### TenantAwareCassandraMapperProvider
+Provides a tenant aware instance of Mapper.
+
+    ...
+    
+    private final TenantAwareCassandraMapperProvider tenantAwareCassandraMapperProvider;
+    
+    ...
+    
+    @Autowired
+    public Sample(final TenantAwareCassandraMapperProvider tenantAwareCassandraMapperProvider) {
+        super();
+        this.TenantAwareCassandraMapperProvider = tenantAwareCassandraMapperProvider;
+    }
+    
+    ...
+    
+    public void shouldSaveSampleEntityUsingMapper() throws Exception {
+        final String identifier = UUID.randomUUID().toString();
+        final SampleEntity sampleEntity = new SampleEntity();
+        sampleEntity.setIdentifier(identifier);
+        sampleEntity.setContent("test content");
+
+        final Mapper<SampleEntity> sampleEntityMapper = 
+                this.tenantAwareCassandraMapperProvider.getMapper(SampleEntity.class);
+        sampleEntityMapper.save(sampleEntity);
+
+        final SampleEntity fetchedSampleEntity = sampleEntityMapper.get(identifier);
+        ...
+    }
+    
+    ...
+    
+### CassandraSessionProvider
+Provides an administrative session, tenant sessions, or custom sessions.
+
+    ...
+    
+    private final CassandraSessionProvider cassandraSessionProvider;
+    
+    ...
+    
+    @Autowired
+    public Sample(final CassandraSessionProvider cassandraSessionProvider) {
+        super();
+        this.CassandraSessionProvider = cassandraSessionProvider;
+    }
+    
+    ... 
+    
+    public void shouldRetrieveAdminSession() throws Exception {
+        final Session testSession = this.cassandraSessionProvider.getAdminSession();
+        ...
+    }
+    
+    public void shouldRetrieveTenantSession() throws Exception {
+        final Session testSession = this.cassandraSessionProvider.getTenantSession();
+        ...
+    }
+    
+    public void shouldRetrieveTenantSession(final String identifier) throws Exception {
+        final Session testSession = this.cassandraSessionProvider.getTenantSession(identifier);
+        ...
+    }
+
+    public void shouldRetrieveCustomSession(final String clusterName, final String contactPoints, 
+                                            final String keyspace) throws Exception {
+        final Session session = this.cassandraSessionProvider.getSession(clusterName, contactPoints, keyspace);
+        ...
+    }
+    
+
 ## Versioning
 The version numbers follow the [Semantic Versioning](http://semver.org/) scheme.
 
